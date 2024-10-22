@@ -1,0 +1,105 @@
+import { ResultSetHeader } from "mysql2";
+import { Usuario } from "../Model/usuario.Controller";
+import { UsuarioRepository } from "../repositori/usuario.Repositori";
+import { validate } from 'class-validator';
+
+export class usuarioController {
+  private repository: UsuarioRepository;
+
+  constructor() {
+    this.repository = new UsuarioRepository();
+  }
+
+    async agregar(payload: { id: number; nombre: string; email: string; telefono: string }) {
+      try {
+        // Crear una instancia del modelo Usuario con los datos del payload
+        const usuario = new Usuario({
+          id: payload.id,
+          nombre: payload.nombre,
+          email: payload.email,
+          telefono: payload.telefono
+        });
+  
+        // Validar los datos del usuario usando class-validator
+        const errores = await validate(usuario);
+  
+        if (errores.length > 0) {
+          // Si hay errores de validación, devolver los errores en el response
+          return {
+            ok: false,
+            errores: errores.map(error => Object.values(error.constraints || {})),
+          };
+        }
+  
+        // Si no hay errores, intenta agregar el usuario al repositorio
+        const result = await this.repository.agregarUsuario(usuario);
+        
+        if (result.affectedRows == 1) {
+          return { ok: true, id: result.insertId };
+        } else {
+          return { ok: false, id: result.insertId };
+        }
+  
+      } catch (error: any) {
+        console.log("Ha ocurrido un error al guardar.", error?.message);
+        throw error;
+      }
+    }
+  
+
+  async obtener() {
+    try {
+      const resultado = await this.repository.obtenerUsusarios();
+      return resultado;
+    } catch (error) {
+      return error;
+    }
+  }
+
+  async actualizar(payload: { id: number; nombre: string; email: string; telefono: string }) {
+    try {
+      const usuario = new Usuario({ id: payload.id, nombre: payload.nombre, email: payload.email, telefono: payload.telefono });
+      const resultado = await this.repository.modificarUsuario(usuario);
+      if (resultado.affectedRows === 1) {
+        return {ok: true , message : "usuario actualizado corretamente "}        
+      } else {
+        return {ok: false , message : "Error actualizado corretamente"}        
+      }
+    } catch (error) {
+      console.log("Ha ocurrido un error actualizando");
+      throw error;
+    }
+  }
+
+  async obtenerPorId(id: number) {
+    try {
+      const resultado = await this.repository.obtenerUsarioUno(id);
+      if (resultado.length == 1) {
+        return resultado[0];
+      } else {
+        return "El ID del Usuario : no se encuentra en la base de datos";
+      }
+    } catch (error) {
+      console.log("Ha ocurrido un error al consultando.");
+      return error;
+    }
+  }
+
+  async eliminar(id: number) {
+    const resultado: ResultSetHeader = await this.repository.eliminarUsuario(id);
+    if (resultado.affectedRows == 1) {
+      return { ok: true, message: "Usuario eliminado Corretamente" };
+    } else {
+      return { ok: false, message: "No se pudo eliminar el Usuario // No se encuentra en la base de datos" };
+    }
+  }
+
+}
+
+
+
+
+ 
+
+
+
